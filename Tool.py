@@ -12,6 +12,7 @@ import re
 from typing import List
 import time
 from datetime import datetime
+from plugins.timetask.config import conf, load_config
 from lib import itchat
 from lib.itchat.content import *
 from channel.chat_message import ChatMessage
@@ -408,9 +409,12 @@ class TimeTaskModel:
         self.isNeedCalculateCron = isNeedCalculateCron
         self.taskId = item[0]
         self.enable = item[1] == "1"
+        load_config()
+        self.conf = conf()
         
         #是否今日已被消费
         self.is_today_consumed = False
+        self.timezone_offset = self.conf.get("timezone_offset", 0)
         
         #时间信息
         timeValue = item[2]
@@ -524,7 +528,7 @@ class TimeTaskModel:
         #校验cron格式
         if self.isValid_Cron_time():
             # 获取当前时间（忽略秒数）
-            current_time = arrow.now().replace(second=0, microsecond=0)
+            current_time = arrow.now().shift(hours=self.timezone_offset).replace(second=0, microsecond=0)
             # 创建一个 croniter 对象
             cron = croniter(self.cron_expression, current_time.datetime)
             next_time = cron.get_next(datetime)
@@ -569,7 +573,7 @@ class TimeTaskModel:
     def is_nowTime(self):
             
         # 获取当前时间（忽略秒数）
-        current_time = arrow.now().format('HH:mm')
+        current_time = arrow.now().shift(hours=self.timezone_offset).format('HH:mm')
              
         #cron   
         if self.isCron_time():
@@ -600,7 +604,7 @@ class TimeTaskModel:
             return True 
         else:    
             #对比精准到分（忽略秒）
-            current_time = arrow.now().replace(second=0, microsecond=0).time()
+            current_time = arrow.now().shift(hours=self.timezone_offset).replace(second=0, microsecond=0).time()
             task_time = arrow.get(tempTimeStr, "HH:mm:ss").replace(second=0, microsecond=0).time()
             tempValue = task_time > current_time
             return tempValue 
@@ -616,7 +620,7 @@ class TimeTaskModel:
             tempValue = "每周" in tempStr or "每星期" in tempStr or "每天" in tempStr  or "工作日" in tempStr
             #日期
             if self.is_valid_date(tempStr):
-                tempValue = arrow.get(tempStr, 'YYYY-MM-DD').date() > arrow.now().date()
+                tempValue = arrow.get(tempStr, 'YYYY-MM-DD').date() > arrow.now().shift(hours=self.timezone_offset).date()
                 
             return tempValue 
     
@@ -627,7 +631,7 @@ class TimeTaskModel:
             return True 
         
         #当前时间
-        current_time = arrow.now()
+        current_time = arrow.now().shift(hours=self.timezone_offset)
         #轮询信息
         item_circle = self.circleTimeStr
         if self.is_valid_date(item_circle):
@@ -656,7 +660,7 @@ class TimeTaskModel:
             
         elif "工作日" in item_circle:
                 # 判断星期几
-                weekday = arrow.now().weekday()
+                weekday = arrow.now().shift(hours=self.timezone_offset).weekday()
                 # 判断是否是工作日
                 is_weekday = weekday < 5
                 if is_weekday:
@@ -675,7 +679,7 @@ class TimeTaskModel:
             return False
         
         # 判断今天是否是指定的星期几
-        today = arrow.now()
+        today = arrow.now().shift(hours=self.timezone_offset)
         tempValue = today.weekday() == weekday_num - 1   
         return tempValue   
         
@@ -697,7 +701,7 @@ class TimeTaskModel:
         #如果可被解析为具体日期
         if circleStr in ['今天', '明天', '后天']:
               #今天
-              today = arrow.now('local')
+              today = arrow.now('local').shift(hours=self.timezone_offset)
               if circleStr == '今天':
                     # 将日期格式化为 YYYY-MM-DD 的格式
                     formatted_today = today.format('YYYY-MM-DD')
