@@ -50,6 +50,8 @@ class TaskManager(object):
         load_config()
         self.conf = conf()
         self.debug = self.conf.get("debug", False)
+        # 时区偏移(客户端时间与服务器时间的偏移量，单位：小时)
+        self.timezone_offset = self.conf.get("timezone_offset", 0)
         #迁移任务的时间
         self.move_historyTask_time = self.conf.get("move_historyTask_time", "04:00:00")
         #默认每秒检测一次
@@ -196,7 +198,7 @@ class TaskManager(object):
             return
           
         #当前时间的小时：分钟
-        current_time_hour_min = arrow.now().format('HH:mm')
+        current_time_hour_min = arrow.now().shift(hours=self.timezone_offset).format('HH:mm')
         #执行中 - 标识符
         identifier_running = f"{current_time_hour_min}_running"
         #结束 - 标识符
@@ -230,7 +232,7 @@ class TaskManager(object):
         elif "_end" in current_task_state:
             #标识符中的时间
             tempTimeStr = current_task_state.replace("_end", ":00")
-            current_time = arrow.now().replace(second=0, microsecond=0).time()
+            current_time = arrow.now().shift(hours=self.timezone_offset).replace(second=0, microsecond=0).time()
             task_time = arrow.get(tempTimeStr, "HH:mm:ss").replace(second=0, microsecond=0).time()
             tempValue = task_time < current_time
             if tempValue:
@@ -240,7 +242,7 @@ class TaskManager(object):
     #刷新c任务   
     def refresh_times(self, modelArray):
         #当前时间的小时：分钟
-        current_time_hour_min = arrow.now().format('HH:mm')
+        current_time_hour_min = arrow.now().shift(hours=self.timezone_offset).format('HH:mm')
         #执行中 - 标识符
         identifier_running = f"{current_time_hour_min}_running"
         #结束 - 标识符
@@ -278,7 +280,7 @@ class TaskManager(object):
         elif "_end" in current_task_state:
             #标识符中的时间
             tempTimeStr = current_task_state.replace("_end", ":00")
-            current_time = arrow.now().replace(second=0, microsecond=0).time()
+            current_time = arrow.now().shift(hours=self.timezone_offset).replace(second=0, microsecond=0).time()
             task_time = arrow.get(tempTimeStr, "HH:mm:ss").replace(second=0, microsecond=0).time()
             tempValue = task_time < current_time
             if tempValue:
@@ -385,7 +387,7 @@ class TaskManager(object):
     def is_targetTime(self, timeStr):
         tempTimeStr = timeStr
         #对比精准到分（忽略秒）
-        current_time = arrow.now().format('HH:mm')
+        current_time = arrow.now().shift(hours=self.timezone_offset).format('HH:mm')
         
         #如果是分钟
         if tempTimeStr.count(":") == 1:

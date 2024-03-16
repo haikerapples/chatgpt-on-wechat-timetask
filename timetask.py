@@ -461,7 +461,7 @@ class timetask(Plugin):
             #时间
             if self.conf.get("is_need_currentTime_whenNormalReply", True):
                 # 获取当前时间
-                current_time = arrow.now()
+                current_time = arrow.now().shift(hours=self.conf.get("timezone_offset", 0))
                 # 去除秒钟
                 current_time_without_seconds = current_time.floor('minute')
                 # 转换为指定格式的字符串
